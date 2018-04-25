@@ -1,216 +1,253 @@
 import pygame
-import time
-from pygame.locals import *
-
+import random
+# Initialize the game engine
 pygame.init()
 
-white = (255,255,255)
-black = (0,0,0)
-green = (0,150,0)
-red = (255,0,0)
-blue = (0,0,255)
-light_blue = (147,251,253)
+# Define some colors
+black    = (   0,   0,   0)
+white    = ( 255, 255, 255)
+green    = (   0, 255,   0)
+red      = ( 255,   0,   0)
+blue     = (   0,   0, 255)
 
-#Clock initialized
-clock= pygame.time.Clock()
-#Board Size
-screen= pygame.display.set_mode((800,600))
-#dividing line
-divline1 = screen.get_width()/2, 0
-divline2 = screen.get_width()/2 ,screen.get_height()
-#Caption
-pygame.display.set_caption('Air Hockey!')
-#Font Sizes
-smallfont = pygame.font.SysFont("comicsansms" , 25)
-medfont = pygame.font.SysFont("comicsansms" , 45)
-largefont = pygame.font.SysFont("comicsansms" , 65)
+def drawTable():
+    #base of rink
+    pygame.draw.rect(screen, white,(25,25,450,650),0)
 
-#Create Game Objects
-goalheight = 50
-goalwidth = 20
-goal1 = pygame.Rect(0,screen.get_height()/2 - 50,10,100)
-goal2 = pygame.Rect(screen.get_width()-10,screen.get_height()/2 - goalheight,10,100)
-paddle1= pygame.Rect(screen.get_width()/2-200,screen.get_height()/2,20,20)
-paddle2= pygame.Rect(screen.get_width()/2+200,screen.get_height()/2,20,20)
-paddleVelocity= 4
-disc= pygame.Rect(screen.get_width()/2,screen.get_height()/2,20,20)
-#pygame.draw.rect(gameDisplay,red,[screen.get_width()/2,screen.get_height()/2,20,20])
-#divider= pygame.Rect(screen.get_width()/2,0,3,screen.get_height())
-discVelocity= [5,5]
-img = pygame.image.load('./disc.png')
-#background = pygame.image.load('./background.jpg')
-bluepadimg = pygame.image.load('./bluepad.png')
-redpadimg = pygame.image.load('./redpad.png')
+    #middle section
+    pygame.draw.line(screen, red, [25,350],[475,350],5)
+    pygame.draw.circle(screen, red, [250,350],50,5)
+    pygame.draw.circle(screen, red, [250,350],10)
 
-#Score
-score1,score2 = 0,0
-serveDirection=1
+    #end of middle section
+    pygame.draw.line(screen, blue, [25,250],[475,250],5)
+    pygame.draw.line(screen, blue, [25,450],[475,450],5)
 
-def resetPuck():
-    discVelocity[0]=5*serveDirection
-    discVelocity[1]=5*serveDirection
-    print(score1,score2)
-    disc.x= screen.get_width()/2
-    disc.y= screen.get_height()/2
+    #decorative circles
+    for x in range(125,376,250):
+        for y in range(175,526,350):
+            pygame.draw.circle(screen, red, [x,y],50,5)
+            pygame.draw.circle(screen, red, [x,y],10)
+    #end lines
+    pygame.draw.line(screen, red, [25,50],[475,50],2)
+    pygame.draw.line(screen, red, [25,650],[475,650],2)
 
-def text_objects(text,color,size):
-    if size == "small":
-        textSurface = smallfont.render(text , True , color)
-    elif size == "medium":
-        textSurface = medfont.render(text , True , color)   
-    elif size == "large":
-        textSurface = largefont.render(text , True , color) 
-    return textSurface , textSurface.get_rect()
+    #rink frame
+    pygame.draw.rect(screen, black,(25,25,450,650),5)
 
-def pause():
-    paused = True
-    message_to_screen("Paused",black,-100,size="large")
-    message_to_screen("Press c to continue , q to quit",black,25)
-    pygame.display.update()
-    while paused:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
+    #thin frame
+    #pygame.draw.rect(screen, black,(25,25,450,650),1)
 
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_c:
-                    paused = False
-
-                elif event.key == pygame.K_q:
-                    pygame.quit()
-                    quit()
-        #gameDisplay.fill(white)
-        clock.tick(5)    
-
-def message_to_screen(msg,color,y_displace=0,x_displace=0,size = "small"):
-    textSurf, textRect = text_objects(msg,color,size)
-    textRect.center = (screen.get_width()/2+x_displace) , ((screen.get_height()/2) + y_displace)
-    screen.blit(textSurf,textRect)
+puckStart_x = 250
+puckStart_y = 350
 
 
-def gameLoop():
-    gameExit = False
-    gameOver = False
-    score2,score1=0,0
-    while not gameExit:
-        
-        for event in pygame.event.get():
-            down2,up2,up,down,left2,right2,right,left=0,0,0,0,0,0,0,0                
-            print(event)
-            if event.type == pygame.QUIT:
-                gameExit = True
-            if event.type == pygame.KEYDOWN:
-                keys = pygame.key.get_pressed()
-                if keys[K_LEFT]:
-                    left = 1;
-                elif keys[K_RIGHT]:
-                    right = 1;
-                elif keys[K_UP]:
-                    up = 1;
-                elif keys[K_DOWN]:
-                    down = 1;
-                elif keys[K_a]:
-                    left2 = 1;
-                elif keys[K_d]:
-                    right2 = 1;    
-                elif keys[K_w]:
-                    up2 = 1;
-                elif keys[K_s]:
-                    down2 = 1; 
-                elif keys[K_p]:
-                    pause()             
+class Puck(object):
+    def __init__(self,x,y,dx=0,dy=0):
+        self.x = x
+        self.y = y
+        self.dx = dx
+        self.dy = dy
+        self.puckStart_x = self.x
+        self.puckStart_y = self.y
+    def updatePuck(self):
+        if self.x<=40:
+            self.x = 42
+            self.dx *= -1
+        elif self.x>=460:
+            self.x = 458
+            self.dx *= -1
+        if self.y<=30:
+            self.y = 32
+            self.dy *= -1
+        elif self.y>=670:
+            self.y = 668
+            self.dy *= -1
+        self.x += self.dx
+        self.y += self.dy
+    def frictionOnPuck(self):
+        if self.dx > 1:
+            self.dx -= 1
+        elif self.dx < -1:
+            self.dx += 1
+        if self.dy > 1:
+            self.dy -= 1
+        elif self.dy < -1:
+            self.dy += 1
+    def drawPuck(self):
+        pygame.draw.circle(screen, black, [self.x,self.y],15,0)
 
-        #pygame.draw.rect(gameDisplay,red,[randapplex,randappley,appleThickness,appleThickness])
-        
-        #gameDisplay.blit(discimg, (discx,discy))
-        #Update Paddle1
-        paddle1.y+=(down2-up2)*paddleVelocity
-        paddle1.x+=(right2-left2)*paddleVelocity
-        if paddle1.y<0:
-            paddle1.y=0
-        elif paddle1.y>screen.get_height()-  paddle1.height:
-            paddle1.y=screen.get_height()-  paddle1.height
-        if paddle1.x<0:
-            paddle1.x=0
-        elif paddle1.x>screen.get_width()/2- paddle1.width:
-            paddle1.x= screen.get_width()/2- paddle1.width
+    def limitPuckSpeed(self):
+        if self.dx > 10:
+            self.dx = 10
+        if self.dx < -10:
+            self.dx = -10
+        if self.dy > 10:
+            self.dy = 10
+        if self.dy < -10:
+            self.dy = 10
 
-        #Update Paddle2
-        paddle2.y+= (down-up)*paddleVelocity
-        paddle2.x+= (right-left)*paddleVelocity
-        if paddle2.y<0:
-            paddle2.y=0
-        elif paddle2.y>screen.get_height()-  paddle2.height:
-            paddle2.y=screen.get_height()-  paddle2.height
-        if paddle2.x>screen.get_width()- paddle1.width:
-            paddle2.x= screen.get_width()- paddle1.width
-        elif paddle2.x<screen.get_width()/2:
-            paddle2.x= screen.get_width()/2
-
-        #Update Puck
-        disc.x+=discVelocity[0]
-        disc.y+=discVelocity[1]
-        if (disc.x <= disc.width and (disc.y <= screen.get_height()/2 + goalheight) and (disc.y >= screen.get_height() - goalheight)):
-            score2+=1
-            serveDirection=-1
-            resetPuck()
-        elif (disc.x >= screen.get_width()-goalwidth-disc.width) and (disc.y <= screen.get_height()/2 + goalheight) and (disc.y >= screen.get_height()/2 - goalheight):
-            score1+=1
-            serveDirection=1
-            resetPuck()
-        elif disc.x - 10 < 0 or disc.x + 25 > screen.get_width() :
-            discVelocity[0]*=-1;    
-
-        if disc.y - 10 < 0  or disc.y + 10 > screen.get_height() - disc.height:
-            discVelocity[1]*=-1
-        if disc.colliderect(paddle1) or disc.colliderect(paddle2):
-            discVelocity[0]*=-1
+    def reset(self):
+        self.x = self.puckStart_x
+        self.y = self.puckStart_y
+        self.dx = 0
+        self.dy = 0
 
 
-        #Render Logic
-        screen.fill(black)
-        message_to_screen("Player 1",white,-250,-150,"small")
-        message_to_screen(str(score1),white,-200,-150,"small")
-        message_to_screen("Player 2",white,-250,150,"small")
-        message_to_screen(str(score2),white,-200,150,"small")
-        pygame.draw.rect(screen, (255,100, 100), paddle1)
-        pygame.draw.rect(screen, (20,20,100), paddle2)  
-        pygame.draw.rect(screen,light_blue,goal1)
-        pygame.draw.rect(screen,light_blue,goal2)  
-        screen.blit(img,(disc.x,disc.y))   
-        screen.blit(bluepadimg,(paddle1.x-5,paddle1.y-5))
-        screen.blit(redpadimg,(paddle2.x-5,paddle2.y-5))
-        #screen.blit(background,(0,0))
-        pygame.draw.circle(screen, white , (screen.get_width()/2, screen.get_height()/2), screen.get_width()/10,5)
-        #boundaries and center line
-        pygame.draw.line(screen , white , divline1, divline2 ,5 )
-        pygame.draw.line(screen, blue,(0,0), (screen.get_width()/2 - 5,0) ,5)
-        pygame.draw.line(screen, blue,(0,screen.get_height()), (screen.get_width()/2 - 5,screen.get_height()) ,5)
-        pygame.draw.line(screen, red, (screen.get_width()/2+5,0), (screen.get_width() ,0) ,5)
-        pygame.draw.line(screen, red, (screen.get_width()/2 + 5,screen.get_height()) , (screen.get_width(),screen.get_height()) ,5)
-        pygame.draw.line(screen, blue, (0,0), (0,screen.get_height()/2-goalheight) ,5)
-        pygame.draw.line(screen, blue, (0,screen.get_height()/2 + goalheight), (0,screen.get_height()) ,5)
-        pygame.draw.line(screen, red, (screen.get_width(),0), (screen.get_width(),screen.get_height()/2-goalheight) ,5)
-        pygame.draw.line(screen, red, (screen.get_width(),screen.get_height()/2 + goalheight), (screen.get_width(),screen.get_height()) ,5)
-        #pygame.draw.circle(screen,red,)
-        pygame.display.update()
-        clock.tick(50)
-
-gameLoop()  
+puck1 = Puck(puckStart_x,puckStart_y)
 
 
+class Mallet(object):
+    def __init__(self,malletType,x,y,uLim=0,bLim=0,lLim=0,rLim=450,dx=0,dy=0):
+        self.x = x
+        self.y = y
+        self.last_x = self.x
+        self.last_y = self.y
+
+        self.malletType = malletType
+
+        self.uLim = uLim
+        self.bLim = bLim
+        self.lLim = lLim
+        self.rLim = rLim
+
+        self.dx = dx
+        self.dy = dy
+
+        self.malletStart_x = self.x
+        self.malletStart_y = self.y
+
+    def updateMallet(self):
+        if self.malletType != "MP":
+            self.x += self.dx
+            self.y += self.dy
+
+        if self.x<self.lLim:
+            #self.dx = 0
+            self.x = self.lLim
+        elif self.x>self.rLim:
+            #self.dx = 0
+            self.x = self.rLim
+
+        if self.y<self.uLim:
+            #self.dy = 0
+            self.y = self.uLim
+        elif self.y>self.bLim:
+            #self.dy = 0
+            self.y = self.bLim
+
+    def drawMallet(self):
+        pygame.draw.circle(screen, white, [self.x,self.y],20,0)
+        pygame.draw.circle(screen, black, [self.x,self.y],20,1)
+        pygame.draw.circle(screen, black, [self.x,self.y],5,0)
+
+    def resetMallet(self):
+        self.x = self.malletStart_x
+        self.y = self.malletStart_y
+
+upperMallet=Mallet("AI",250,100,50,330)
+lowerMallet=Mallet("MP",250,600,370,650)
+
+
+def malletAI(upperMallet):
+    if puck1.x < upperMallet.x:
+        if puck1.x < upperMallet.lLim:
+            upperMallet.dx = 1
+        else:
+            upperMallet.dx = -2
+    if puck1.x > upperMallet.x:
+        if  puck1.x > upperMallet.rLim:
+            upperMallet.dx = -1
+        else:
+            upperMallet.dx = 2
+    if puck1.y < upperMallet.y:
+        if puck1.y < upperMallet.uLim:
+            upperMallet.dy = 1
+        else:
+            upperMallet.dy = -6
+    if puck1.y > upperMallet.y:
+        if puck1.y<=360: #was 250
+            upperMallet.dy = 6
+        #elif puck1.y<=350:
+        #    upperMallet.dy = 2
+        else:
+            if upperMallet.y>200:
+                upperMallet.dy = -2
+            else:
+                upperMallet.dy = 0
+        if abs(puck1.y-upperMallet.y)< 20 and abs(puck1.x-upperMallet.x)< 20:
+            puck1.dy +=2
+
+class Goal(object):
+    def __init__(self,x,y,w=100,h=20):
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+
+        self.centre_x = self.x + self.w/2
+        self.centre_y = self.y + self.w/2
+
+    def drawGoal(self):
+        pygame.draw.rect(screen, green,(self.x,self.y,self.w,self.h),0)
+
+upperGoal = Goal(200,10)
+lowerGoal = Goal(200,670)
+
+
+class UpperZone(object):
+    def __init__(self,x,y,w,h):
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+        self.colour = (random.randint(0,255),random.randint(0,255),random.randint(0,255))
+
+
+    def drawZone(self):
+        pygame.draw.rect(screen,self.colour,(self.x,self.y,self.w,self.h),0)
+
+
+ticksToFriction = 60
+ticksToAI = 10
+
+cpuScore = 0
+playerScore = 0
+
+
+# Set the width and height of the screen
+size=[500,700]
+screen=pygame.display.set_mode(size)
+
+pygame.display.set_caption("Air Hockey by Edward Yu")
+
+
+done=False
+
+clock=pygame.time.Clock()
 
 
 
+# -------- Main Program Loop -----------
+while done==False:
+    # ALL EVENT PROCESSING SHOULD GO BELOW THIS COMMENT
+    for event in pygame.event.get(): # User did something
+        if event.type == pygame.QUIT: # If user clicked close
+            done=True # Flag that we are done so we exit this loop
+        # User pressed down on a key
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_a and upperMallet.malletType == "KB":
+                upperMallet.dx=-7
+            if event.key == pygame.K_d and upperMallet.malletType == "KB":
+                upperMallet.dx=7
+            if event.key == pygame.K_w and upperMallet.malletType == "KB":
+                upperMallet.dy=-7
+            if event.key == pygame.K_s and upperMallet.malletType == "KB":
+                upperMallet.dy=7
 
-
-
-
-
-
-
-
-
-
-    
+            if event.key == pygame.K_r:
+                print ("Game reset by user..")
+                cpuScore = 0
+                playerScore = 0
+                puck1.reset()
+                upperMallet.resetMallet()
